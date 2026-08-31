@@ -11,3 +11,4 @@ wheels/
 
 # File dirs
 /data/
+/cache/

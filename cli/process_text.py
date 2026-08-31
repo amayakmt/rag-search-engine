@@ -2,11 +2,7 @@
 import string
 from pathlib import Path
 from nltk.stem import PorterStemmer
-
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-STOPWORDS = BASE_DIR / "data" / "stopwords.txt"
-
+from config import STOPWORDS
 
 def _remove_stopwords_and_stem(tokens: list[str]) -> list[str]:
     stemmer = PorterStemmer()
@@ -23,12 +19,11 @@ def _remove_stopwords_and_stem(tokens: list[str]) -> list[str]:
         return result
 
 
-def process_text(text: str) -> list[str]:
+def tokenize_text(text: str) -> list[str]:
     lowered = text.lower()
     mask = str.maketrans("", "", string.punctuation)
     no_punctuation = lowered.translate(mask)
     tokenized = no_punctuation.split()
     no_stopwords = _remove_stopwords_and_stem(tokenized)
     
-
     return no_stopwords
