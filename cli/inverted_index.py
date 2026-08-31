@@ -1,21 +1,30 @@
 # file to build an inverted index for keyword search
 import pickle
-from process_text import tokenize_text
+from collections import Counter
+
+from tokenizer import tokenize_text
 from load_movies import load_movies
-from config import CACHE_DIR, INDEX_PATH, DOCMAP_PATH
+from config import CACHE_DIR, INDEX_PATH, DOCMAP_PATH, TF_PATH
+
 
 class InvertedIndex:
     def __init__(self):
         self.index: dict[str, set[int]] = {} # dict mapping tokens to sets of document IDs
         self.docmap = {} # dict mapping document IDs to their full document objects
+        self.term_frequencies: dict[str, Counter] = {} # dictionary mapping document IDs to Counter objects (dictionary optimized for counting)
 
     # add each movie token as a key, and map to a set of document IDs
     def __add_document(self, doc_id, text):
         tokens = tokenize_text(text)
+        if doc_id not in self.term_frequencies:
+            self.term_frequencies[doc_id] = Counter()
+
         for token in tokens:
             if token not in self.index:
                 self.index[token] = set()
+
             self.index[token].add(doc_id)
+            self.term_frequencies[doc_id][token] += 1
 
     # get the document ID for a single preprocessed token and return them as a sorted list
     def get_documents(self, term):
@@ -49,9 +58,13 @@ class InvertedIndex:
         with open(DOCMAP_PATH, "wb") as f:
             pickle.dump(self.docmap, f)
 
+        with open(TF_PATH, "wb") as f:
+            pickle.dump(self.term_frequencies, f)
+
+
     # loads the index and docmap from disk using pickle module's load function
     def load(self):
-        if not INDEX_PATH.is_file() or not DOCMAP_PATH.is_file():
+        if not INDEX_PATH.is_file() or not DOCMAP_PATH.is_file() or not TF_PATH.is_file():
             raise FileNotFoundError("Cache files not found. Build the index first.")
 
         with open(INDEX_PATH, "rb") as f:
@@ -59,3 +72,12 @@ class InvertedIndex:
 
         with open(DOCMAP_PATH, "rb") as f:
             self.docmap = pickle.load(f)
+
+        with open(TF_PATH, "rb") as f:
+            self.term_frequencies = pickle.load(f)
+
+
+    # returns how many times the token appears in the document with the given ID. If it does not appear, then returns 0
+    def get_tf(self, doc_id, term):
+        return self.term_frequencies.get(doc_id, Counter())[term]
+    

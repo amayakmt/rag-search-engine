@@ -2,12 +2,12 @@ import argparse
 import json
 import sys
 
-from process_text import tokenize_text
-from load_movies import load_movies
+from tokenizer import tokenize_text, tokenize_term
 from build_command import build_command
 from inverted_index import InvertedIndex
 
 def main() -> None:
+    # CLI arguments logic
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
@@ -16,7 +16,14 @@ def main() -> None:
 
     build_parser = subparsers.add_parser("build", help="Build and cache the inverted index")
 
+    tf_parser = subparsers.add_parser("tf", help="Compute Term Frequency in a selected Document ID")
+    tf_parser.add_argument("document_id", type=int, help="Document ID to check")
+    tf_parser.add_argument("term", help="Term to check")
+
     args = parser.parse_args()
+
+    # initialize inverted index
+    idx = InvertedIndex()
 
     match args.command:
         case "search":
@@ -25,7 +32,6 @@ def main() -> None:
             tokenized_query = tokenize_text(keyword_query)
 
             # load the index
-            idx = InvertedIndex()
             try:
                 idx.load()
             except FileNotFoundError as e:
@@ -34,7 +40,6 @@ def main() -> None:
 
             # initiate search
             print(f"Searching for: {keyword_query}")
-            result = []
 
             # loop logic
             doc_ids = set()
@@ -54,6 +59,26 @@ def main() -> None:
 
         case "build":
             build_command()
+
+        case "tf": 
+            doc_id = args.document_id
+            term = args.term
+
+            # load the index
+            try:
+                idx.load()
+            except FileNotFoundError as e:
+                print(f"Error: {e}")
+                sys.exit(1)
+
+
+            try:
+                tokenized_term = tokenize_term(term)
+            except ValueError as e:
+                print(f"Error: {e}")
+                sys.exit(1)
+
+            print(idx.get_tf(doc_id, tokenized_term))
 
         case _:
             parser.print_help()

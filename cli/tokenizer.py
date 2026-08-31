@@ -27,3 +27,10 @@ def tokenize_text(text: str) -> list[str]:
     no_stopwords = _remove_stopwords_and_stem(tokenized)
     
     return no_stopwords
+
+def tokenize_term(term: str) -> str:
+    tokenized_term = tokenize_text(term)
+    if len(tokenized_term) != 1:
+        raise ValueError(f"A term must be a single word without spaces. Input:{term}")
+
+    return tokenized_term[0]
