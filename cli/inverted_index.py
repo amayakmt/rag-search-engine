@@ -48,3 +48,14 @@ class InvertedIndex:
 
         with open(DOCMAP_PATH, "wb") as f:
             pickle.dump(self.docmap, f)
+
+    # loads the index and docmap from disk using pickle module's load function
+    def load(self):
+        if not INDEX_PATH.is_file() or not DOCMAP_PATH.is_file():
+            raise FileNotFoundError("Cache files not found. Build the index first.")
+
+        with open(INDEX_PATH, "rb") as f:
+            self.index = pickle.load(f)
+
+        with open(DOCMAP_PATH, "rb") as f:
+            self.docmap = pickle.load(f)

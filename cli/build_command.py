@@ -12,4 +12,4 @@ def build_command() -> None:
 
     # 4. Test output required by the test runner
     docs = idx.get_documents("merida")
-    print(f"First document for token 'merida' = {docs[0]}")
+    
