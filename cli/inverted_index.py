@@ -1,10 +1,11 @@
 # file to build an inverted index for keyword search
 import pickle
 from collections import Counter
+import math
 
 from tokenizer import tokenize_text
 from load_movies import load_movies
-from config import CACHE_DIR, INDEX_PATH, DOCMAP_PATH, TF_PATH
+from config import CACHE_DIR, INDEX_PATH, DOCMAP_PATH, TF_PATH, BM25_K1
 
 
 class InvertedIndex:
@@ -27,7 +28,7 @@ class InvertedIndex:
             self.term_frequencies[doc_id][token] += 1
 
     # get the document ID for a single preprocessed token and return them as a sorted list
-    def get_documents(self, term):
+    def get_documents(self, term) -> set:
         return sorted(self.index.get(term, set()))
 
     # add each movie to both the index and the docmap
@@ -77,7 +78,31 @@ class InvertedIndex:
             self.term_frequencies = pickle.load(f)
 
 
-    # returns how many times the token appears in the document with the given ID. If it does not appear, then returns 0
+    # returns simple tf
     def get_tf(self, doc_id, term):
         return self.term_frequencies.get(doc_id, Counter())[term]
+
+    # returns simple idf
+    def get_idf(self, term):
+        total_doc_count = len(self.docmap)
+        term_match_doc_count = len(self.get_documents(term))
+        return math.log((total_doc_count + 1) / (term_match_doc_count + 1))
+
+    # returns simple tf-idf
+    def get_tfidf(self, doc_id, term):
+        tf = self.get_tf(doc_id, term)
+        idf = self.get_idf(term)
+        return tf * idf
+
+    # returns BM25 enhanced idf
+    def get_bm25_idf(self, term: str) -> float:
+        total_doc_count = len(self.docmap)
+        doc_ids_with_term = self.get_documents(term)
+        df = len(doc_ids_with_term)
+
+        return math.log((total_doc_count - df + 0.5) / (df + 0.5) + 1)
     
+    # returns BM25 enhanced tf
+    def get_bm25_tf(self, doc_id, term, k1=BM25_K1):
+        raw_tf = self.get_tf(doc_id, term)
+        return (raw_tf * (k1 + 1)) / (raw_tf + k1)

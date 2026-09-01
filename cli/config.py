@@ -9,3 +9,5 @@ TF_PATH = CACHE_DIR / "term_frequencies.pkl"
 
 STOPWORDS = BASE_DIR / "data" / "stopwords.txt"
 MOVIES = BASE_DIR / "data" / "movies.json"
+
+BM25_K1 = 1.5
