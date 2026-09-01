@@ -4,9 +4,9 @@ import sys
 from tokenizer import tokenize_text, tokenize_term
 from build_command import build_command
 from inverted_index import InvertedIndex
-from helper import bm25_idf_command, bm25_tf_command
+from helper import bm25_idf_command, bm25_tf_command, bm25_search_command
 
-from config import BM25_K1
+from config import BM25_K1, BM25_B, SEARCH_LIMIT
 
 def main() -> None:
     # CLI arguments logic
@@ -43,6 +43,13 @@ def main() -> None:
     bm25tf_parser.add_argument("doc_id", type=int, help="Document ID to check")
     bm25tf_parser.add_argument("term", help="Term to check")
     bm25tf_parser.add_argument("k1", type=float, nargs="?", default=BM25_K1, help="Tunable BM25 K1 parameter")
+    bm25tf_parser.add_argument("b", type=float, nargs="?", default=BM25_B, help="Tunable BM25 b parameter")
+
+    # BM25 Search
+    bm25search_parser = subparsers.add_parser("bm25search", help="Search via BM25")
+    bm25search_parser.add_argument("query", help="Query to search for")
+    bm25search_parser.add_argument("--limit", type=int, default=SEARCH_LIMIT, help="Maximum number of results to return")
+
 
     args = parser.parse_args()
 
@@ -151,8 +158,14 @@ def main() -> None:
             doc_id = args.doc_id
             term = args.term
             k1 = args.k1
-            bm25tf = bm25_tf_command(doc_id, term, k1)
+            b = args.b
+            bm25tf = bm25_tf_command(doc_id, term, k1, b)
             print(f"BM25 TF score of '{args.term}' in document '{args.doc_id}': {bm25tf:.2f}")
+
+        case "bm25search":
+            query = args.query
+            limit = args.limit
+            bm25_search_command(query, limit)
 
         case _:
             parser.print_help()
