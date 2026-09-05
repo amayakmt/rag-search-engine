@@ -4,7 +4,7 @@ import sys
 from tokenizer import tokenize_text, tokenize_term
 from build_command import build_command
 from inverted_index import InvertedIndex
-from helper import bm25_idf_command, bm25_tf_command, bm25_search_command
+from helper_keyword import bm25_idf_command, bm25_tf_command, bm25_search_command
 
 from config import BM25_K1, BM25_B, SEARCH_LIMIT
 
