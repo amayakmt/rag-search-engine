@@ -33,7 +33,7 @@ def main() -> None:
     chunk_parser = subparsers.add_parser("chunk", help="Splits long text into smaller pieces for embedding.")
     chunk_parser.add_argument("text", help="Text to chunk")
     chunk_parser.add_argument("--chunk-size", type=int, default=200, help="Maximum size of the chunk")
-
+    chunk_parser.add_argument("--overlap", type=int, default=0, help="When inserted, each previous chunk will share the last `overlap` words with the following chunk.")
 
     args = parser.parse_args()
 
@@ -75,12 +75,14 @@ def main() -> None:
         case "chunk":
             text = args.text
             chunk_size = args.chunk_size
+            overlap = args.overlap
 
-            chunks = chunk_text_by_words(text, chunk_size)
+            chunks = chunk_text_by_words(text, chunk_size, overlap)
 
             print(f"Chunking {len(text)} characters")
             for idx, chunk in enumerate(chunks, start=1):
                 print(f"{idx}. {chunk}")
+
          
         case _:
             parser.print_help()
