@@ -9,6 +9,7 @@ INDEX_PATH = CACHE_DIR / "index.pkl"
 DOCMAP_PATH = CACHE_DIR / "docmap.pkl"
 TF_PATH = CACHE_DIR / "term_frequencies.pkl"
 DOC_LENGTH_PATH = CACHE_DIR / "doc_lengths.pkl"
+EMBEDDINGS_PATH = CACHE_DIR / "movie_embeddings.py"
 
 # data
 STOPWORDS = BASE_DIR / "data" / "stopwords.txt"
