@@ -1,5 +1,6 @@
 from lib.semantic_search import SemanticSearch
 from load_movies import load_movies
+import numpy as np
 
 def embed_text(text):
     model = SemanticSearch()
@@ -17,3 +18,13 @@ def verify_embeddings():
 
     print(f"Number of docs: {len(documents)}")
     print(f"Embeddings shape: {embeddings.shape[0]} vectors in {embeddings.shape[1]} dimensions")
+
+
+def embed_query_text(query):
+    model = SemanticSearch()
+    embedding = model.generate_embedding(query)
+
+    print(f"Query: {query}")
+    print(f"First 3 dimensions: {embedding[:3]}")
+    print(f"Shape: {embedding.shape}")
+
