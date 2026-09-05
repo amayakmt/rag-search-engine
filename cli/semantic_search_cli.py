@@ -1,7 +1,7 @@
 import argparse
 
 from lib.semantic_search import SemanticSearch
-from helper_semantic import embed_text, verify_embeddings, embed_query_text
+from helper_semantic import embed_text, verify_embeddings, embed_query_text, chunk_text_by_words
 from load_movies import load_movies
 
 from config import SEARCH_LIMIT
@@ -28,6 +28,12 @@ def main() -> None:
     search_parser = subparsers.add_parser("search", help="Execute semantic search")
     search_parser.add_argument("query", help="Query to search")
     search_parser.add_argument("--limit", type=int, default=SEARCH_LIMIT, help="Maximum number of results to return")
+
+    # chunking
+    chunk_parser = subparsers.add_parser("chunk", help="Splits long text into smaller pieces for embedding.")
+    chunk_parser.add_argument("text", help="Text to chunk")
+    chunk_parser.add_argument("--chunk-size", type=int, default=200, help="Maximum size of the chunk")
+
 
     args = parser.parse_args()
 
@@ -62,9 +68,20 @@ def main() -> None:
             results = model.search(query, limit)
 
             for idx, result in enumerate(results, start=1):
-                print(f"{idx}. {result["title"]} (score: {result["score"]:.4f})")
+                print(f'{idx}. {result["title"]} (score: {result["score"]:.4f})')
                 print(f"{result["description"]}\n")
 
+
+        case "chunk":
+            text = args.text
+            chunk_size = args.chunk_size
+
+            chunks = chunk_text_by_words(text, chunk_size)
+
+            print(f"Chunking {len(text)} characters")
+            for idx, chunk in enumerate(chunks, start=1):
+                print(f"{idx}. {chunk}")
+         
         case _:
             parser.print_help()
 

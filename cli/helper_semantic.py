@@ -28,3 +28,9 @@ def embed_query_text(query):
     print(f"First 3 dimensions: {embedding[:3]}")
     print(f"Shape: {embedding.shape}")
 
+def chunk_text_by_words(text: str, chunk_size: int) -> list[str]:
+    words = text.split()
+    return [
+        " ".join(words[i : i + chunk_size])
+        for i in range(0, len(words), chunk_size)
+    ]
