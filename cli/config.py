@@ -10,6 +10,8 @@ DOCMAP_PATH = CACHE_DIR / "docmap.pkl"
 TF_PATH = CACHE_DIR / "term_frequencies.pkl"
 DOC_LENGTH_PATH = CACHE_DIR / "doc_lengths.pkl"
 EMBEDDINGS_PATH = CACHE_DIR / "movie_embeddings.npy"
+CHUNKS_EMBEDDINGS_PATH = CACHE_DIR / "chunk_embeddings.npy"
+CHUNKS_METADATA_PATH = CACHE_DIR / "chunk_metadata.json"
 
 # data
 STOPWORDS = BASE_DIR / "data" / "stopwords.txt"
