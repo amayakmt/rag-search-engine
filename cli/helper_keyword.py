@@ -56,4 +56,4 @@ def bm25_search_command(query, limit=SEARCH_LIMIT):
     results = idx.bm25_search(query, limit)
 
     for i, movie in enumerate(results, start=1):
-        print(f"{i}. ({movie["id"]}) {movie["title"]} - Score: {movie["score"]:.2f}")
+        print(f"{i}. ({movie['id']}) {movie['title']} - Score: {movie['score']:.2f}")
