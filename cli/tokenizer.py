@@ -1,41 +1,35 @@
 # helper functions to preprocess text for searching
 import string
-from pathlib import Path
 from nltk.stem import PorterStemmer
 from config import STOPWORDS
 
+PUNCTUATION_TRANSLATOR = str.maketrans("", "", string.punctuation)
+STEMMER = PorterStemmer()
+
+
 def _clean_token(text: str) -> str:
-    lowered = text.lower()
-    mask = str.maketrans("", "", string.punctuation)
-    return lowered.translate(mask)
+    return text.lower().translate(PUNCTUATION_TRANSLATOR)
 
 
 def load_stopwords() -> set[str]:
     with open(STOPWORDS, "r", encoding="utf-8") as f:
-        # Preprocess each stop word (strip punctuation and lower) so tokens match
         return {_clean_token(word) for word in f.read().splitlines() if word.strip()}
 
 
-# Cache stopwords set in memory once instead of reading disk every tokenization
 CACHED_STOPWORDS: set[str] = load_stopwords()
 
 
 def _remove_stopwords_and_stem(tokens: list[str]) -> list[str]:
-    stemmer = PorterStemmer()
-    result = []
-
-    for token in tokens:
-        if token in CACHED_STOPWORDS:
-            continue
-        result.append(stemmer.stem(token))
-
-    return result
+    return [
+        STEMMER.stem(token)
+        for token in tokens
+        if token not in CACHED_STOPWORDS
+    ]
 
 
 def tokenize_text(text: str) -> list[str]:
     cleaned = _clean_token(text)
-    tokenized = cleaned.split()
-    return _remove_stopwords_and_stem(tokenized)
+    return _remove_stopwords_and_stem(cleaned.split())
 
 
 def tokenize_term(term: str) -> str:
