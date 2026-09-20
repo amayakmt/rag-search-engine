@@ -86,7 +86,7 @@ def main() -> None:
             # print logic
             for i, doc_id in enumerate(doc_ids, start=1):
                 movie = idx.docmap[doc_id]
-                print(f"f{i}. ({movie["id"]}) {movie["title"]}")
+                print(f"{i}. ({movie["id"]}) {movie["title"]}")
 
         case "build":
             build_command()
