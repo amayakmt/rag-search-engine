@@ -1,61 +1,42 @@
 import argparse
 
-from lib.semantic_search import (
-    SemanticSearch,
-    ChunkedSemanticSearch,
-    chunk_by_text_sentences,
-    chunk_text_by_words,
-)
-from helper_semantic import (
-    embed_text,
-    verify_embeddings,
-    embed_query_text,
-)
-from load_movies import load_movies
+from core.semantic_search import SemanticSearch, ChunkedSemanticSearch
+from utils.chunking import chunk_by_text_sentences, chunk_text_by_words
+from utils.data import load_movies
 from config import SEARCH_LIMIT
-
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Semantic Search CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
-    # verify model
     subparsers.add_parser("verify", help="Verifies the model")
-
-    # embed_text
+    
     embed_text_parser = subparsers.add_parser("embed_text", help="Embeds a text")
     embed_text_parser.add_argument("text", help="Text to embed")
-
-    # verify doc embeddings
+    
     subparsers.add_parser("verify_embeddings", help="Verify embeddings")
-
-    # embed user query
+    
     embed_query_parser = subparsers.add_parser("embed_query", help="Embed the user's query")
     embed_query_parser.add_argument("query", help="Query to embed")
-
-    # semantic search
+    
     search_parser = subparsers.add_parser("search", help="Execute semantic search")
     search_parser.add_argument("query", help="Query to search")
     search_parser.add_argument("--limit", type=int, default=SEARCH_LIMIT, help="Maximum number of results to return")
-
-    # chunking
+    
     chunk_parser = subparsers.add_parser("chunk", help="Splits long text into smaller pieces for embedding.")
     chunk_parser.add_argument("text", help="Text to chunk")
     chunk_parser.add_argument("--chunk-size", type=int, default=200, help="Maximum size of the chunk")
     chunk_parser.add_argument("--overlap", type=int, default=0, help="Number of overlapping words")
-
-    # semantic chunking
+    
     sem_chunk_parser = subparsers.add_parser("semantic_chunk", help="Splits long text into small pieces on sentence boundaries.")
     sem_chunk_parser.add_argument("text", help="Text to chunk")
     sem_chunk_parser.add_argument("--max-chunk-size", type=int, default=4, help="Max chunk size in sentences")
     sem_chunk_parser.add_argument("--overlap", type=int, default=0, help="Number of overlapping sentences")
-
-    # search chunked
+    
     search_chunked_parser = subparsers.add_parser("search_chunked", help="Search movies using chunked embeddings")
     search_chunked_parser.add_argument("query", help="Query to search")
     search_chunked_parser.add_argument("--limit", type=int, default=5, help="Maximum number of results to return")
-
-    # embed chunks
+    
     subparsers.add_parser("embed_chunks", help="Embed chunks by sentences")
 
     args = parser.parse_args()
@@ -66,13 +47,25 @@ def main() -> None:
             model.verify_model()
 
         case "embed_text":
-            embed_text(args.text)
+            model = SemanticSearch()
+            embedding = model.generate_embedding(args.text)
+            print(f"Text: {args.text}")
+            print(f"First 3 dimensions: {embedding[:3]}")
+            print(f"Dimensions: {embedding.shape[0]}")
 
         case "verify_embeddings":
-            verify_embeddings()
+            model = SemanticSearch()
+            documents = load_movies()
+            embeddings = model.load_or_create_embeddings(documents)
+            print(f"Number of docs: {len(documents)}")
+            print(f"Embeddings shape: {embeddings.shape[0]} vectors in {embeddings.shape[1]} dimensions")
 
         case "embed_query":
-            embed_query_text(args.query)
+            model = SemanticSearch()
+            embedding = model.generate_embedding(args.query)
+            print(f"Query: {args.query}")
+            print(f"First 3 dimensions: {embedding[:3]}")
+            print(f"Shape: {embedding.shape}")
 
         case "search":
             model = SemanticSearch()
@@ -103,14 +96,10 @@ def main() -> None:
             print(f"Generated {len(embeddings)} chunked embeddings")
 
         case "search_chunked":
-            query = args.query
-            limit = args.limit
-
             movies = load_movies()
             model = ChunkedSemanticSearch()
-
             model.load_or_create_chunk_embeddings(movies)
-            results = model.search_chunks(query, limit)
+            results = model.search_chunks(args.query, args.limit)
 
             for i, result in enumerate(results, start=1):
                 print(f"\n{i}. {result['title']} (score: {result['score']:.4f})")
@@ -119,7 +108,5 @@ def main() -> None:
         case _:
             parser.print_help()
 
-
 if __name__ == "__main__":
     main()
-    
