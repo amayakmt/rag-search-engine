@@ -175,4 +175,3 @@ class InvertedIndex:
             }
             for doc_id, score in sorted_scores
         ]
-    

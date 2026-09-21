@@ -57,3 +57,9 @@ def bm25_search_command(query, limit=SEARCH_LIMIT):
 
     for i, movie in enumerate(results, start=1):
         print(f"{i}. ({movie['id']}) {movie['title']} - Score: {movie['score']:.2f}")
+
+# helper for build command
+def build_command(idx: InvertedIndex) -> None:
+    idx.build()
+    idx.save()
+    
