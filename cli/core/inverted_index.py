@@ -23,7 +23,7 @@ class InvertedIndex:
         self.doc_lengths: dict[int, int] = {}
         self._avg_doc_length: float | None = None
 
-    def __add_document(self, doc_id, text):
+    def __add_document(self, doc_id, text) -> None:
         tokens = tokenize_text(text)
         if doc_id not in self.term_frequencies:
             self.term_frequencies[doc_id] = Counter()
@@ -47,18 +47,18 @@ class InvertedIndex:
     def get_documents(self, term) -> list[int]:
         return sorted(self.index.get(term, set()))
 
-    def build(self):
+    def build(self) -> None:
         movies = load_movies()
 
         for movie in movies:
             doc_id = movie["id"]
-            text = f"{movie['title']} {movie['description']}"
+            text = f"{movie['title']} {movie.get('description', '')}"
             self.__add_document(doc_id, text)
             self.docmap[doc_id] = movie
             
         self._avg_doc_length = None
 
-    def save(self):
+    def save(self) -> None:
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
         with open(INDEX_PATH, "wb") as f:
@@ -73,7 +73,7 @@ class InvertedIndex:
         with open(DOC_LENGTH_PATH, "wb") as f:
             pickle.dump(self.doc_lengths, f)
 
-    def load(self):
+    def load(self) -> None:
         if not INDEX_PATH.is_file() or not DOCMAP_PATH.is_file() or not TF_PATH.is_file() or not DOC_LENGTH_PATH.is_file():
             raise FileNotFoundError("Cache files not found. Build the index first.")
 
@@ -91,10 +91,10 @@ class InvertedIndex:
             
         self._avg_doc_length = None
 
-    def get_tf(self, doc_id, term):
+    def get_tf(self, doc_id, term) -> float:
         return self.term_frequencies.get(doc_id, Counter())[term]
 
-    def get_idf(self, term):
+    def get_idf(self, term) -> float:
         total_doc_count = len(self.docmap)
         term_match_doc_count = len(self.get_documents(term))
         return math.log((total_doc_count + 1) / (term_match_doc_count + 1))
@@ -110,7 +110,7 @@ class InvertedIndex:
         df = len(doc_ids_with_term)
         return math.log((total_doc_count - df + 0.5) / (df + 0.5) + 1)
 
-    def get_bm25_tf(self, doc_id, term, k1=BM25_K1, b=BM25_B):
+    def get_bm25_tf(self, doc_id, term, k1=BM25_K1, b=BM25_B) -> float:
         raw_tf = self.get_tf(doc_id, term)
         avg_len = self._get_avg_doc_length()
         if raw_tf == 0 or avg_len == 0:
@@ -119,12 +119,12 @@ class InvertedIndex:
         length_norm = 1 - b + b * (self.doc_lengths[doc_id] / avg_len)
         return (raw_tf * (k1 + 1)) / (raw_tf + k1 * length_norm)
 
-    def bm25(self, doc_id, term):
+    def bm25(self, doc_id, term) -> float:
         tf = self.get_bm25_tf(doc_id, term)
         idf = self.get_bm25_idf(term)
         return tf * idf
 
-    def bm25_search(self, query, limit=SEARCH_LIMIT):
+    def bm25_search(self, query, limit=SEARCH_LIMIT) -> list[dict]:
         tokenized_query = tokenize_text(query)
         if not tokenized_query:
             return []
@@ -143,6 +143,7 @@ class InvertedIndex:
             {
                 "id": doc_id,
                 "title": self.docmap[doc_id]["title"],
+                "description": self.docmap[doc_id].get("description", "")[:100],
                 "score": score,
             }
             for doc_id, score in sorted_scores

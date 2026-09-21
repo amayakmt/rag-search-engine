@@ -35,7 +35,7 @@ class SemanticSearch:
     def build_embeddings(self, documents: list[dict]) -> np.ndarray:
         self.documents = documents
         self.document_map = {doc["id"]: doc for doc in documents}
-        stringed_docs = [f"{doc['title']}: {doc['description']}" for doc in documents]
+        stringed_docs = [f"{doc['title']}: {doc.get('description', '')}" for doc in documents]
         
         self.embeddings = self.model.encode(stringed_docs, show_progress_bar=True)
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -64,7 +64,11 @@ class SemanticSearch:
         scored_docs.sort(key=lambda item: item[0], reverse=True)
         
         return [
-            {"score": score, "title": doc["title"], "description": doc["description"]}
+            {
+                "score": score,
+                "title": doc["title"],
+                "description": doc.get("description", "")
+            }
             for score, doc in scored_docs[:limit]
         ]
 
@@ -145,7 +149,7 @@ class ChunkedSemanticSearch(SemanticSearch):
             formatted_result = format_search_result(
                 doc_id=doc["id"],
                 title=doc["title"],
-                document=doc.get("description", "")[:100],
+                description=doc.get("description", "")[:100],
                 score=best_chunk["score"],
                 chunk_idx=best_chunk["chunk_idx"],
                 movie_idx=best_chunk["movie_idx"]
