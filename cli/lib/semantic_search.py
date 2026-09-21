@@ -1,10 +1,41 @@
 import json
 import re
-from pathlib import Path
 import numpy as np
 from sentence_transformers import SentenceTransformer
+from typing import Any, TypedDict
 
-from config import CACHE_DIR, EMBEDDINGS_PATH, CHUNKS_EMBEDDINGS_PATH, CHUNKS_METADATA_PATH
+from config import CACHE_DIR, EMBEDDINGS_PATH, CHUNKS_EMBEDDINGS_PATH, CHUNKS_METADATA_PATH, SCORE_PRECISION
+
+class SearchResult(TypedDict):
+    id: int
+    title: str
+    document: str
+    score: float
+    metadata: dict[str, Any]
+
+
+def format_search_result(
+    doc_id: int, title: str, document: str, score: float, **metadata: Any
+) -> SearchResult:
+    """Create standardized search result
+
+    Args:
+        doc_id: Document ID
+        title: Document title
+        document: Display text (usually short description)
+        score: Relevance/similarity score
+        **metadata: Additional metadata to include
+
+    Returns:
+        Dictionary representation of search result
+    """
+    return {
+        "id": doc_id,
+        "title": title,
+        "document": document,
+        "score": round(score, SCORE_PRECISION),
+        "metadata": metadata if metadata else {},
+    }
 
 
 def cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:
@@ -184,3 +215,53 @@ class ChunkedSemanticSearch(SemanticSearch):
             return self.chunk_embeddings
 
         return self.build_chunk_embeddings(documents)
+
+    def search_chunks(self, query: str, limit: int = 10) -> list[dict]:
+        if self.chunk_embeddings is None or self.chunk_metadata is None:
+            raise ValueError("No chunk embeddings loaded. Call 'load_or_create_chunk_embeddings' first.")
+
+        # Calculate similarities for all chunks
+        query_embedding = super().generate_embedding(query)
+        chunk_score: list[dict] = []
+
+        for chunk_emb, metadata in zip(self.chunk_embeddings, self.chunk_metadata):
+            cos = cosine_similarity(query_embedding, chunk_emb)
+
+            chunk_score.append({
+                "chunk_idx": metadata["chunk_idx"],
+                "movie_idx": metadata["movie_idx"],
+                "score": cos
+            })
+
+        # Find the best chunk score for each movie
+        best_movie_scores: dict[int, dict] = {}
+        for chunk in chunk_score:
+            m_idx = chunk["movie_idx"]
+
+            if m_idx not in best_movie_scores or chunk["score"] > best_movie_scores[m_idx]["score"]:
+                best_movie_scores[m_idx] = chunk
+
+        # Sor the unique movies by their best chunk score in descending order
+        sorted_best_movies = sorted(best_movie_scores.values(), key=lambda item: item["score"], reverse=True)
+
+        # Filter down to the top limit movies
+        top_movies = sorted_best_movies[:limit]
+
+        # Format the results
+        results = []
+        for best_chunk in top_movies:
+            m_idx = best_chunk["movie_idx"]
+            doc = self.documents[m_idx]
+
+            formatted_result = format_search_result(
+                doc_id=doc["id"],
+                title=doc["title"],
+                document=doc.get("description", "")[:100],
+                score=best_chunk["score"],
+                chunk_idx=best_chunk["chunk_idx"],
+                movie_idx=best_chunk["movie_idx"]
+            )
+
+            results.append(formatted_result)
+
+        return results

@@ -21,3 +21,4 @@ MOVIES = BASE_DIR / "data" / "movies.json"
 BM25_K1 = 1.5
 BM25_B = 0.75
 SEARCH_LIMIT = 5
+SCORE_PRECISION = 3
