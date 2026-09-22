@@ -12,3 +12,4 @@ wheels/
 # File dirs
 /data/
 /cache/
+.env
