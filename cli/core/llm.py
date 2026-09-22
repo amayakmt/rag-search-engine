@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from config import MODEL, LLM_BASE_URL
-from core.llm_prompts import SPELL_CHECKER, REWRITER
+from core.llm_prompts import SPELL_CHECKER, REWRITER, EXPANSION
 
 class LLMResponse(TypedDict):
     response: str
@@ -43,3 +43,6 @@ def spell_checker(query: str) -> LLMResponse:
 
 def rewriter(query: str) -> LLMResponse:
     return invoke_llm(f"{REWRITER} '{query}'")
+
+def expand(query: str) -> LLMResponse:
+    return invoke_llm(f"{EXPANSION} '{query}'")

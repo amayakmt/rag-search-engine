@@ -3,7 +3,7 @@ import sys
 
 from utils.data import load_movies
 from core.hybrid_search import HybridSearch
-from core.llm import spell_checker, rewriter
+from core.llm import spell_checker, rewriter, expand
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Hybrid Search CLI")
@@ -24,7 +24,7 @@ def main() -> None:
     rrf_search_command.add_argument("query", help="query to search")
     rrf_search_command.add_argument("-k", type=int, default=60, help="a constant that controls how much more weight we give to higher-ranked results")
     rrf_search_command.add_argument("--limit", type=int, default=5, help="maximum number of results to return")
-    rrf_search_command.add_argument("--enhance", type=str, nargs="?", const=None, choices=["spell", "rewrite"], default=None, help="query enhancement method")
+    rrf_search_command.add_argument("--enhance", type=str, nargs="?", const=None, choices=["spell", "rewrite", "expand"], default=None, help="query enhancement method")
 
     args = parser.parse_args()
 
@@ -59,7 +59,8 @@ def main() -> None:
             if args.enhance:
                 enhancers = {
                     "spell": spell_checker,
-                    "rewrite": rewriter
+                    "rewrite": rewriter,
+                    "expand": expand
                 }
                 try:
                     enhanced_query = enhancers[args.enhance](query)["response"]
