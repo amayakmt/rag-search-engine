@@ -1,11 +1,18 @@
 import os
 import time
+import json
 from typing import TypedDict
 from dotenv import load_dotenv
 from openai import OpenAI
 
 from config import MODEL, LLM_BASE_URL
-from core.llm_prompts import SPELL_CHECKER, REWRITER, EXPANSION, INDIVIDUAL_RERANK
+from core.llm_prompts import (
+    SPELL_CHECKER,
+    REWRITER,
+    EXPANSION,
+    INDIVIDUAL_RERANK,
+    BATCH_RERANK
+)
 
 class LLMResponse(TypedDict):
     response: str
@@ -69,3 +76,35 @@ def individual_reranker(query: str, documents: list[dict]) -> list[dict]:
         time.sleep(3)
 
     return sorted(documents, key=lambda item: item["individual_rerank_score"], reverse=True)
+
+def batch_reranker(query: str, documents: list[dict]) -> list[dict]:
+    doc_lines = []
+    for doc in documents:
+        doc_id = doc["id"]
+        title = doc.get("title", "")
+        desc = doc.get("description", "")
+        doc_lines.append(f"ID: {doc_id} | Title: {title} | Desc: {desc}")
+
+    doc_list_str = "\n".join(doc_lines)
+
+    prompt = BATCH_RERANK.format(
+        query=query,
+        doc_list_str=doc_list_str
+    )
+
+    raw_response = invoke_llm(prompt)["response"]
+
+    try:
+        ranked_ids = json.loads(raw_response)
+    except json.JSONDecodeError:
+        print("Warning: LLM failed to return valid JSON. Falling back to original RRF ranking.")
+        return documents
+
+    rank_map = {doc_id: rank for rank, doc_id in enumerate(ranked_ids)}
+
+    ranked_documents = sorted(documents, key=lambda doc: rank_map.get(doc["id"], float('inf')))
+
+    for idx, doc in enumerate(ranked_documents, start=1):
+        doc["batch_rerank_position"] = idx
+
+    return ranked_documents
