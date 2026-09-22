@@ -8,6 +8,11 @@ from config import INDEX_PATH
 def hybrid_score(bm25_score: float, semantic_score: float, alpha: float = 0.5) -> float:
     return alpha * bm25_score + (1 - alpha) * semantic_score
 
+def rrf_score(rank: int, k: int = 60) -> float:
+    if rank is None:
+        return 0.0
+    return 1 / (k + rank)
+
 
 class HybridSearch:
     def __init__(self, documents: list[dict]) -> None:
@@ -31,7 +36,7 @@ class HybridSearch:
         bm25_norm: list[float] = self.normalize([res["score"] for res in bm25_results])
         semantic_norm: list[float] = self.normalize([res["score"] for res in semantic_results])
 
-        combined_results = {}
+        combined_results: dict[dict] = {}
 
         # add bm_25 normalized score
         for result, norm_score in zip(bm25_results, bm25_norm):
@@ -64,7 +69,41 @@ class HybridSearch:
         return sorted(combined_results.values(), key=lambda item: item["hybrid_score"], reverse=True)[:limit]
 
     def rrf_search(self, query: str, k: int, limit: int = 10) -> list[dict]:
-        raise NotImplementedError("RRF hybrid search is not implemented yet.")
+        bm25_results: list[dict] = self._bm25_search(query, limit * 500)
+        semantic_results: list[dict] = self.semantic_search.search_chunks(query, limit * 500)
+
+        combined_results: dict[int, dict] = {}
+
+        for idx, result in enumerate(bm25_results, start=1):
+            doc_id = result["id"]
+            combined_results[doc_id] = {
+                "id": doc_id,
+                "title": result["title"],
+                "description": result["description"],
+                "bm25_rank": idx,
+                "semantic_rank": None
+            }
+
+        for idx, result in enumerate(semantic_results, start=1):
+            doc_id = result["id"]
+            if doc_id in combined_results:
+                combined_results[doc_id]["semantic_rank"] = idx
+            else:
+                combined_results[doc_id] = {
+                    "id": doc_id,
+                    "title": result["title"],
+                    "description": result["description"],
+                    "bm25_rank": None,
+                    "semantic_rank": idx
+                }
+
+        for doc in combined_results.values():
+            doc["rrf_score"] = (
+                rrf_score(doc["bm25_rank"], k) +
+                rrf_score(doc["semantic_rank"], k)
+            )
+
+        return sorted(combined_results.values(), key=lambda item: item["rrf_score"], reverse=True)[:limit]
 
     def normalize(self, scores: list[float]) -> list[float]:
         if not scores:
