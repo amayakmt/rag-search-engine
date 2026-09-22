@@ -26,3 +26,5 @@ completion = client.chat.completions.create(
 )
 
 print(completion.choices[0].message.content)
+print("Prompt tokens:", completion.usage.prompt_tokens)
+print("Response tokens:", completion.usage.completion_tokens)
