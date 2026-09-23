@@ -26,3 +26,6 @@ SCORE_PRECISION = 3
 # LLM
 MODEL = "openrouter/free"
 LLM_BASE_URL = "https://openrouter.ai/api/v1"
+
+# Cross-Encoder
+CROSS_ENCODER_MODEL = "cross-encoder/ms-marco-TinyBERT-L2-v2"
