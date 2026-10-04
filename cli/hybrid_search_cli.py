@@ -1,10 +1,13 @@
 import argparse
+import logging
 import sys
 
 from utils.data import load_movies
 from core.hybrid_search import HybridSearch
 from core.llm import spell_checker, rewriter, expand, individual_reranker, batch_reranker
 from core.cross_encoder import cross_encoder_reranker
+
+logger = logging.getLogger(__name__)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Hybrid Search CLI")
@@ -27,8 +30,12 @@ def main() -> None:
     rrf_search_command.add_argument("--limit", type=int, default=5, help="maximum number of results to return")
     rrf_search_command.add_argument("--enhance", type=str, nargs="?", const=None, choices=["spell", "rewrite", "expand"], default=None, help="query enhancement method")
     rrf_search_command.add_argument("--rerank-method", type=str, nargs="?", const=None, choices=["individual", "batch", "cross_encoder"], default=None, help="optional argument to implement re-ranking")
+    rrf_search_command.add_argument("--debug", action="store_true", help="log each stage of the RRF search pipeline")
 
     args = parser.parse_args()
+
+    if args.command == "rrf-search" and args.debug:
+        logging.basicConfig(level=logging.DEBUG, format="%(levelname)s: %(message)s")
 
     # exit if no command is provided
     if not args.command:
@@ -57,6 +64,7 @@ def main() -> None:
 
         case "rrf-search":
             query = args.query
+            logger.debug("Original query: %s", query)
             original_limit = args.limit
             limit = original_limit
 
@@ -74,10 +82,13 @@ def main() -> None:
                     print(f"Error: {e}")
                     sys.exit(1)
 
+            logger.debug("Query after enhancements: %s", query)
+
             if args.rerank_method:
                 limit = original_limit * 5
 
             results = hybrid.rrf_search(query=query, k=args.k, limit=limit)
+            logger.debug("Results after RRF search: %s", results)
 
             rerankers = {
                 "individual": individual_reranker,
@@ -93,6 +104,8 @@ def main() -> None:
                 else:
                     print(f"Error: Unknown re-rank method '{args.rerank_method}'")
                     sys.exit(1)
+
+                    logger.debug("Final results after re-ranking: %s", results)
 
             print(f"Reciprocal Rank Fusion Results for '{query}' (k={args.k}):\n")
 
