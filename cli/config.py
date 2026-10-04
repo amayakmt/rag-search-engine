@@ -16,12 +16,14 @@ CHUNKS_METADATA_PATH = CACHE_DIR / "chunk_metadata.json"
 # data
 STOPWORDS = BASE_DIR / "data" / "stopwords.txt"
 MOVIES = BASE_DIR / "data" / "movies.json"
+EVAL_DATASET = BASE_DIR / "data" / "golden_dataset.json"
 
 # constants
 BM25_K1 = 1.5
 BM25_B = 0.75
 SEARCH_LIMIT = 5
 SCORE_PRECISION = 3
+RRF_SEARCH_K = 60
 
 # LLM
 MODEL = "openrouter/free"

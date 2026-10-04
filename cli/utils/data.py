@@ -1,6 +1,6 @@
 import json
 from typing import Any, TypedDict
-from config import MOVIES, SCORE_PRECISION
+from config import MOVIES, SCORE_PRECISION, EVAL_DATASET
 
 class SearchResult(TypedDict):
     id: int
@@ -24,3 +24,8 @@ def load_movies() -> dict:
     with open(MOVIES, "r") as m:
         data = json.load(m)
         return data["movies"]
+
+def load_test_cases() -> dict:
+    with open(EVAL_DATASET, "r") as f:
+        data = json.load(f)
+        return data["test_cases"]
