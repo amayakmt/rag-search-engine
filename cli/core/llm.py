@@ -11,7 +11,8 @@ from core.llm_prompts import (
     REWRITER,
     EXPANSION,
     INDIVIDUAL_RERANK,
-    BATCH_RERANK
+    BATCH_RERANK,
+    EVALUATE
 )
 
 class LLMResponse(TypedDict):
@@ -108,3 +109,44 @@ def batch_reranker(query: str, documents: list[dict]) -> list[dict]:
         doc["batch_rerank_position"] = idx
 
     return ranked_documents
+
+def evaluator(query: str, results: list[dict]) -> list[int]:
+    if not results:
+        return []
+
+    formatted_results = []
+    for idx, result in enumerate(results, start=1):
+        title = result.get("title", "Untitled")
+        desc = result.get("description", "")
+        formatted_results.append(f"Result {idx}: {title} - {desc}")
+
+    doc_list_str = "\n".join(formatted_results)
+
+    prompt = EVALUATE.format(
+        query=query,
+        doc_list_str=doc_list_str
+    )
+
+    try:
+        raw_response = invoke_llm(prompt)["response"].strip()
+    except Exception as e:
+        print(f"Warning: LLM invocation failed for evaluator ({e}). Defaulting to 0s.")
+        return [0] * len(results)
+
+    try:
+        if raw_response.startswith("```"):
+            raw_response = raw_response.replace("```json", "").replace("```", "").strip()
+
+        scores = json.loads(raw_response)
+
+        scores = [int(score) for score in scores]
+
+        if len(scores) != len(results):
+            print(f"Warning: Evaluator returned {len(scores)} scores for {len(results)} docs.")
+            while len(scores) < len(results):
+                scores.append(0)
+
+        return scores
+    except Exception as e:
+        print(f"Warning: Failed to process evaluator response ({e}). Defaulting to 0s.")
+        return [0] * len(results)

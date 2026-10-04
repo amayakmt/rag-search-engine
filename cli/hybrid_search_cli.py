@@ -4,7 +4,7 @@ import sys
 
 from utils.data import load_movies
 from core.hybrid_search import HybridSearch
-from core.llm import spell_checker, rewriter, expand, individual_reranker, batch_reranker
+from core.llm import spell_checker, rewriter, expand, individual_reranker, batch_reranker, evaluator
 from core.cross_encoder import cross_encoder_reranker
 
 logger = logging.getLogger(__name__)
@@ -31,6 +31,7 @@ def main() -> None:
     rrf_search_command.add_argument("--enhance", type=str, nargs="?", const=None, choices=["spell", "rewrite", "expand"], default=None, help="query enhancement method")
     rrf_search_command.add_argument("--rerank-method", type=str, nargs="?", const=None, choices=["individual", "batch", "cross_encoder"], default=None, help="optional argument to implement re-ranking")
     rrf_search_command.add_argument("--debug", action="store_true", help="log each stage of the RRF search pipeline")
+    rrf_search_command.add_argument("--evaluate", action="store_true", help="make LLM evaluate the search results")
 
     args = parser.parse_args()
 
@@ -67,6 +68,7 @@ def main() -> None:
             logger.debug("Original query: %s", query)
             original_limit = args.limit
             limit = original_limit
+            evaluate = args.evaluate
 
             if args.enhance:
                 enhancers = {
@@ -116,13 +118,21 @@ def main() -> None:
                     print(f"    Re-rank Score: {result['individual_rerank_score']:.3f}/10")
                 elif "batch_rerank_position" in result:
                     print(f"    Re-rank Rank: {result['batch_rerank_position']}")
-                elif "cross_encoder_rerank_score":
+                elif "cross_encoder_rerank_score" in result:
                     print(f"    Cross-Encoder Score: {result['cross_encoder_rerank_score']:.3f}")
 
                 print(f"    RRF Score: {result['rrf_score']:.3f}")
                 print(f"    BM25 Rank: {result['bm25_rank']}, Semantic Rank: {result['semantic_rank']}")
                 print(f"    {result['description']}...\n")
 
+            if evaluate:
+                print("\n--- LLM Evaluation ---")
+                scores = evaluator(query, results)
+
+                for idx, (result, score) in enumerate(zip(results, scores), start=1):
+                    title = result.get('title', 'Untitled')
+                    print(f"{idx}. {title}: {score}/3")
+                
         case _:
             parser.print_help()
 
