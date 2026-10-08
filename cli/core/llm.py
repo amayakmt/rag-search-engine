@@ -7,6 +7,7 @@ from openai import OpenAI
 
 from config import MODEL, LLM_BASE_URL
 from core.llm_prompts import (
+    AUGMENTED_GENERATION,
     SPELL_CHECKER,
     REWRITER,
     EXPANSION,
@@ -150,3 +151,25 @@ def evaluator(query: str, results: list[dict]) -> list[int]:
     except Exception as e:
         print(f"Warning: Failed to process evaluator response ({e}). Defaulting to 0s.")
         return [0] * len(results)
+
+def augmented_generator(query, results:list[dict]) -> str:
+    formatted_results = []
+    for idx, result in enumerate(results, start=1):
+        title = result.get("title", "Untitled")
+        desc = result.get("description", "")
+        formatted_results.append(f"Result {idx}: {title} - {desc}")
+
+    doc_list_str = "\n".join(formatted_results)
+
+    prompt = AUGMENTED_GENERATION.format(
+        query=query,
+        doc_list_str=doc_list_str
+    )
+
+    try:
+        raw_response = invoke_llm(prompt)["response"].strip()
+    except Exception as e:
+        print(f"Warning: LLM invocation failed for augmented generator ({e}). Defaulting to empty string.")
+        return ""
+
+    return raw_response

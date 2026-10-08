@@ -100,3 +100,16 @@ Return ONLY the scores in the same order you were given the documents. Return a 
 
 [2, 0, 3, 2, 0, 1]
 """
+
+AUGMENTED_GENERATION = """
+You are a RAG agent for Webflyx, a movie streaming service.
+Your task is to provide a natural-language answer to the user's query based on documents retrieved during search.
+Provide a comprehensive answer that addresses the user's query.
+
+Query: "{query}"
+
+Documents:
+{doc_list_str}
+
+Answer:
+"""
