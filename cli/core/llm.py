@@ -14,7 +14,8 @@ from core.llm_prompts import (
     INDIVIDUAL_RERANK,
     BATCH_RERANK,
     EVALUATE,
-    SUMMARIZER
+    SUMMARIZER,
+    CITATIONS,
 )
 
 class LLMResponse(TypedDict):
@@ -193,6 +194,28 @@ def summarizer(query, results:list[dict]) -> str:
         raw_response = invoke_llm(prompt)["response"].strip()
     except Exception as e:
         print(f"Warning: LLM invocation failed for summarizer ({e}). Defaulting to empty string.")
+        return ""
+
+    return raw_response
+
+def citations_generator(query, results:list[dict]) -> str:
+    formatted_results = []
+    for idx, result in enumerate(results, start=1):
+        title = result.get("title", "Untitled")
+        desc = result.get("description", "")
+        formatted_results.append(f"Result {idx}: {title} - {desc}")
+
+    doc_list_str = "\n".join(formatted_results)
+
+    prompt = CITATIONS.format(
+        query=query,
+        doc_list_str=doc_list_str
+    )
+
+    try:
+        raw_response = invoke_llm(prompt)["response"].strip()
+    except Exception as e:
+        print(f"Warning: LLM invocation failed for citations generator ({e}). Defaulting to empty string.")
         return ""
 
     return raw_response
