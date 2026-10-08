@@ -13,7 +13,8 @@ from core.llm_prompts import (
     EXPANSION,
     INDIVIDUAL_RERANK,
     BATCH_RERANK,
-    EVALUATE
+    EVALUATE,
+    SUMMARIZER
 )
 
 class LLMResponse(TypedDict):
@@ -170,6 +171,28 @@ def augmented_generator(query, results:list[dict]) -> str:
         raw_response = invoke_llm(prompt)["response"].strip()
     except Exception as e:
         print(f"Warning: LLM invocation failed for augmented generator ({e}). Defaulting to empty string.")
+        return ""
+
+    return raw_response
+
+def summarizer(query, results:list[dict]) -> str:
+    formatted_results = []
+    for idx, result in enumerate(results, start=1):
+        title = result.get("title", "Untitled")
+        desc = result.get("description", "")
+        formatted_results.append(f"Result {idx}: {title} - {desc}")
+
+    doc_list_str = "\n".join(formatted_results)
+
+    prompt = SUMMARIZER.format(
+        query=query,
+        results=doc_list_str
+    )
+
+    try:
+        raw_response = invoke_llm(prompt)["response"].strip()
+    except Exception as e:
+        print(f"Warning: LLM invocation failed for summarizer ({e}). Defaulting to empty string.")
         return ""
 
     return raw_response

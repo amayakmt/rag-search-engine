@@ -1,7 +1,7 @@
 import argparse
 from utils.data import load_movies
 from core.hybrid_search import HybridSearch
-from core.llm import augmented_generator
+from core.llm import augmented_generator, summarizer
 
 from config import RRF_SEARCH_K
 
@@ -11,6 +11,10 @@ def main() -> None:
 
     rag_parser = subparsers.add_parser("rag", help="Perform RAG (search + generate answer)")
     rag_parser.add_argument("query", type=str, help="Search query for RAG")
+
+    summary_parser = subparsers.add_parser("summarize", help="Generate a summary for a query")
+    summary_parser.add_argument("query", type=str, help="Query to generate summary for")
+    summary_parser.add_argument("--limit", type=int, default=5, help="Number of search results to consider for summarization")
 
     args = parser.parse_args()
 
@@ -29,6 +33,21 @@ def main() -> None:
 
             print("\nRAG Response:")
             print(answer)
+
+        case "summarize":
+            query = args.query
+            movies = load_movies()
+            hybrid = HybridSearch(movies)
+            results = hybrid.rrf_search(query, k=RRF_SEARCH_K, limit=args.limit)
+
+            summary = summarizer(query, results)
+
+            print("Search Results:")
+            for result in results:
+                print(f"- {result.get('title', 'Untitled')}")
+
+            print("\nLLM Summary:")
+            print(summary)
 
         case _:
             parser.print_help()
