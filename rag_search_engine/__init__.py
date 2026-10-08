@@ -1,0 +1,1 @@
+"""Reusable retrieval and augmented-generation components."""

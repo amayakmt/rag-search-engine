@@ -1,9 +1,9 @@
 import argparse
 import sys
 
-from core.tokenizer import tokenize_text, tokenize_term
-from core.inverted_index import InvertedIndex
-from config import BM25_K1, BM25_B, SEARCH_LIMIT
+from rag_search_engine.core.tokenizer import tokenize_text, tokenize_term
+from rag_search_engine.core.inverted_index import InvertedIndex
+from rag_search_engine.config import BM25_K1, BM25_B, SEARCH_LIMIT
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")

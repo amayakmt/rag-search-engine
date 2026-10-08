@@ -1,7 +1,7 @@
 import argparse
 import mimetypes
 
-from core.llm import image_describer
+from rag_search_engine.core.llm import image_describer
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Describe Image CLI")

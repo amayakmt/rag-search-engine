@@ -1,9 +1,9 @@
 import argparse
 
-from core.semantic_search import SemanticSearch, ChunkedSemanticSearch
-from utils.chunking import chunk_by_text_sentences, chunk_text_by_words
-from utils.data import load_movies
-from config import SEARCH_LIMIT
+from rag_search_engine.core.semantic_search import SemanticSearch, ChunkedSemanticSearch
+from rag_search_engine.utils.chunking import chunk_by_text_sentences, chunk_text_by_words
+from rag_search_engine.utils.data import load_movies
+from rag_search_engine.config import SEARCH_LIMIT
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Semantic Search CLI")
@@ -103,7 +103,7 @@ def main() -> None:
 
             for i, result in enumerate(results, start=1):
                 print(f"\n{i}. {result['title']} (score: {result['score']:.4f})")
-                print(f"   {result['document']}...")
+                print(f"   {result['description']}...")
 
         case _:
             parser.print_help()

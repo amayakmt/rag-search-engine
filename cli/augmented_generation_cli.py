@@ -1,14 +1,14 @@
 import argparse
-from utils.data import load_movies
-from core.hybrid_search import HybridSearch
-from core.llm import (
+from rag_search_engine.utils.data import load_movies
+from rag_search_engine.core.hybrid_search import HybridSearch
+from rag_search_engine.core.llm import (
     augmented_generator,
     summarizer,
     citations_generator,
     question_handler
 )
 
-from config import RRF_SEARCH_K
+from rag_search_engine.config import RRF_SEARCH_K
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Retrieval Augmented Generation CLI")
@@ -31,69 +31,26 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    match args.command:
-        case "rag":
-            query = args.query
-            movies = load_movies()
-            hybrid = HybridSearch(movies)
-            results = hybrid.rrf_search(query, k=RRF_SEARCH_K, limit=5)
+    if not args.command:
+        parser.print_help()
+        return
 
-            answer = augmented_generator(query, results)
+    generators = {
+        "rag": (augmented_generator, "RAG Response"),
+        "summarize": (summarizer, "LLM Summary"),
+        "citations": (citations_generator, "LLM Answer"),
+        "question": (question_handler, "Answer"),
+    }
+    generator, heading = generators[args.command]
+    hybrid = HybridSearch(load_movies())
+    results = hybrid.rrf_search(args.query, k=RRF_SEARCH_K, limit=getattr(args, "limit", 5))
+    answer = generator(args.query, results)
 
-            print("Search Results:")
-            for result in results:
-                print(f"- {result.get('title', 'Untitled')}")
-
-            print("\nRAG Response:")
-            print(answer)
-
-        case "summarize":
-            query = args.query
-            movies = load_movies()
-            hybrid = HybridSearch(movies)
-            results = hybrid.rrf_search(query, k=RRF_SEARCH_K, limit=args.limit)
-
-            summary = summarizer(query, results)
-
-            print("Search Results:")
-            for result in results:
-                print(f"- {result.get('title', 'Untitled')}")
-
-            print("\nLLM Summary:")
-            print(summary)
-
-        case "citations":
-            query = args.query
-            movies = load_movies()
-            hybrid = HybridSearch(movies)
-            results = hybrid.rrf_search(query, k=RRF_SEARCH_K, limit=args.limit)
-
-            citations = citations_generator(query, results)
-
-            print("Search Results:")
-            for result in results:
-                print(f"- {result.get('title', 'Untitled')}")
-
-            print("\nLLM Answer:")
-            print(citations)
-
-        case "question":
-            query = args.query
-            movies = load_movies()
-            hybrid = HybridSearch(movies)
-            results = hybrid.rrf_search(query, k=RRF_SEARCH_K, limit=args.limit)
-
-            answer = question_handler(query, results)
-
-            print("Search Results:")
-            for result in results:
-                print(f"- {result.get('title', 'Untitled')}")
-
-            print("\nAnswer:")
-            print(answer)
-
-        case _:
-            parser.print_help()
+    print("Search Results:")
+    for result in results:
+        print(f"- {result.get('title', 'Untitled')}")
+    print(f"\n{heading}:")
+    print(answer)
 
 if __name__ == "__main__":
     main()

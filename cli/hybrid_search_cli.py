@@ -2,10 +2,10 @@ import argparse
 import logging
 import sys
 
-from utils.data import load_movies
-from core.hybrid_search import HybridSearch
-from core.llm import spell_checker, rewriter, expand, individual_reranker, batch_reranker, evaluator
-from core.cross_encoder import cross_encoder_reranker
+from rag_search_engine.utils.data import load_movies
+from rag_search_engine.core.hybrid_search import HybridSearch
+from rag_search_engine.core.llm import spell_checker, rewriter, expand, individual_reranker, batch_reranker, evaluator
+from rag_search_engine.core.cross_encoder import cross_encoder_reranker
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +50,7 @@ def main() -> None:
 
     match args.command:
         case "normalize":
-            dummy_hybrid = HybridSearch([])
-            result = dummy_hybrid.normalize(args.scores)
+            result = HybridSearch.normalize(args.scores)
             for score in result:
                 print(f"* {score:.4f}")
 
@@ -107,7 +106,7 @@ def main() -> None:
                     print(f"Error: Unknown re-rank method '{args.rerank_method}'")
                     sys.exit(1)
 
-                    logger.debug("Final results after re-ranking: %s", results)
+                logger.debug("Final results after re-ranking: %s", results)
 
             print(f"Reciprocal Rank Fusion Results for '{query}' (k={args.k}):\n")
 

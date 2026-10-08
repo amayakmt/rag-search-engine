@@ -897,7 +897,7 @@ wheels = [
 [[package]]
 name = "rag-search-engine"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "nltk" },
     { name = "numpy" },

@@ -2,7 +2,7 @@ import math
 import pickle
 from collections import Counter
 
-from config import (
+from rag_search_engine.config import (
     BM25_B,
     BM25_K1,
     CACHE_DIR,
@@ -12,14 +12,14 @@ from config import (
     SEARCH_LIMIT,
     TF_PATH,
 )
-from utils.data import load_movies
-from core.tokenizer import tokenize_text
+from rag_search_engine.utils.data import load_movies
+from rag_search_engine.core.tokenizer import tokenize_text
 
 class InvertedIndex:
     def __init__(self):
         self.index: dict[str, set[int]] = {}
         self.docmap: dict = {}
-        self.term_frequencies: dict[str, Counter] = {}
+        self.term_frequencies: dict[int, Counter] = {}
         self.doc_lengths: dict[int, int] = {}
         self._avg_doc_length: float | None = None
 
@@ -47,8 +47,12 @@ class InvertedIndex:
     def get_documents(self, term) -> list[int]:
         return sorted(self.index.get(term, set()))
 
-    def build(self) -> None:
-        movies = load_movies()
+    def build(self, documents: list[dict] | None = None) -> None:
+        movies = load_movies() if documents is None else documents
+        self.index.clear()
+        self.docmap.clear()
+        self.term_frequencies.clear()
+        self.doc_lengths.clear()
 
         for movie in movies:
             doc_id = movie["id"]
@@ -125,6 +129,10 @@ class InvertedIndex:
         return tf * idf
 
     def bm25_search(self, query, limit=SEARCH_LIMIT) -> list[dict]:
+        if limit < 0:
+            raise ValueError("limit must be non-negative")
+        if limit == 0:
+            return []
         tokenized_query = tokenize_text(query)
         if not tokenized_query:
             return []
@@ -143,7 +151,7 @@ class InvertedIndex:
             {
                 "id": doc_id,
                 "title": self.docmap[doc_id]["title"],
-                "description": self.docmap[doc_id].get("description", "")[:100],
+                "description": self.docmap[doc_id].get("description", ""),
                 "score": score,
             }
             for doc_id, score in sorted_scores

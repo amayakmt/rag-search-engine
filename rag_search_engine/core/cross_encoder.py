@@ -1,7 +1,9 @@
 from sentence_transformers import CrossEncoder
-from config import CROSS_ENCODER_MODEL
+from rag_search_engine.config import CROSS_ENCODER_MODEL
 
 def cross_encoder_reranker(query: str, documents: list[dict]) -> list[dict]:
+    if not documents:
+        return []
     encoder = CrossEncoder(CROSS_ENCODER_MODEL)
     pairs: list[list] = []
 

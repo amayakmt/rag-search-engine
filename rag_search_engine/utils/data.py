@@ -1,6 +1,6 @@
 import json
 from typing import Any, TypedDict
-from config import MOVIES, SCORE_PRECISION, EVAL_DATASET
+from rag_search_engine.config import MOVIES, SCORE_PRECISION, EVAL_DATASET
 
 class SearchResult(TypedDict):
     id: int
@@ -20,12 +20,12 @@ def format_search_result(
         "metadata": metadata if metadata else {},
     }
 
-def load_movies() -> dict:
-    with open(MOVIES, "r") as m:
+def load_movies() -> list[dict]:
+    with open(MOVIES, "r", encoding="utf-8") as m:
         data = json.load(m)
         return data["movies"]
 
-def load_test_cases() -> dict:
-    with open(EVAL_DATASET, "r") as f:
+def load_test_cases() -> list[dict]:
+    with open(EVAL_DATASET, "r", encoding="utf-8") as f:
         data = json.load(f)
         return data["test_cases"]

@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import base64
 
-from config import MODEL, LLM_BASE_URL
-from core.llm_prompts import (
+from rag_search_engine.config import MODEL, LLM_BASE_URL
+from rag_search_engine.core.llm_prompts import (
     AUGMENTED_GENERATION,
     IMAGE_DESCRIBER,
     SPELL_CHECKER,
@@ -48,9 +48,9 @@ def invoke_llm(prompt: str) -> LLMResponse:
     )
 
     return {
-        "response": str(completion.choices[0].message.content),
-        "prompt_tokens": completion.usage.prompt_tokens,
-        "response_tokens": completion.usage.completion_tokens
+        "response": completion.choices[0].message.content or "",
+        "prompt_tokens": completion.usage.prompt_tokens if completion.usage else 0,
+        "response_tokens": completion.usage.completion_tokens if completion.usage else 0,
     }
 
 # --- Query Enhancers ---
@@ -71,7 +71,7 @@ def individual_reranker(query: str, documents: list[dict]) -> list[dict]:
         prompt = INDIVIDUAL_RERANK.format(
             query=query,
             title=doc.get("title", ""),
-            document=doc.get("document", "")
+            document=doc.get("description", "")
         )
         raw_score = invoke_llm(prompt)["response"]
 
@@ -103,7 +103,9 @@ def batch_reranker(query: str, documents: list[dict]) -> list[dict]:
 
     try:
         ranked_ids = json.loads(raw_response)
-    except json.JSONDecodeError:
+        if not isinstance(ranked_ids, list) or any(type(doc_id) is not int for doc_id in ranked_ids):
+            raise ValueError("Expected a JSON list of document IDs")
+    except (json.JSONDecodeError, ValueError):
         print("Warning: LLM failed to return valid JSON. Falling back to original RRF ranking.")
         return documents
 
@@ -116,21 +118,20 @@ def batch_reranker(query: str, documents: list[dict]) -> list[dict]:
 
     return ranked_documents
 
+def _format_results(results: list[dict]) -> str:
+    return "\n".join(
+        f"Result {idx}: {result.get('title', 'Untitled')} - {result.get('description', '')}"
+        for idx, result in enumerate(results, start=1)
+    )
+
+
 def evaluator(query: str, results: list[dict]) -> list[int]:
     if not results:
         return []
 
-    formatted_results = []
-    for idx, result in enumerate(results, start=1):
-        title = result.get("title", "Untitled")
-        desc = result.get("description", "")
-        formatted_results.append(f"Result {idx}: {title} - {desc}")
-
-    doc_list_str = "\n".join(formatted_results)
-
     prompt = EVALUATE.format(
         query=query,
-        doc_list_str=doc_list_str
+        doc_list_str=_format_results(results)
     )
 
     try:
@@ -145,105 +146,46 @@ def evaluator(query: str, results: list[dict]) -> list[int]:
 
         scores = json.loads(raw_response)
 
+        if not isinstance(scores, list):
+            raise ValueError("Expected a JSON list of scores")
         scores = [int(score) for score in scores]
+        if any(score < 0 or score > 3 for score in scores):
+            raise ValueError("Evaluation scores must be between 0 and 3")
 
         if len(scores) != len(results):
             print(f"Warning: Evaluator returned {len(scores)} scores for {len(results)} docs.")
             while len(scores) < len(results):
                 scores.append(0)
 
-        return scores
+        return scores[:len(results)]
     except Exception as e:
         print(f"Warning: Failed to process evaluator response ({e}). Defaulting to 0s.")
         return [0] * len(results)
 
-def augmented_generator(query, results:list[dict]) -> str:
-    formatted_results = []
-    for idx, result in enumerate(results, start=1):
-        title = result.get("title", "Untitled")
-        desc = result.get("description", "")
-        formatted_results.append(f"Result {idx}: {title} - {desc}")
-
-    doc_list_str = "\n".join(formatted_results)
-
-    prompt = AUGMENTED_GENERATION.format(
-        query=query,
-        doc_list_str=doc_list_str
-    )
-
+def _generate_answer(query: str, results: list[dict], template: str, label: str) -> str:
+    context = _format_results(results)
+    prompt = template.format(query=query, doc_list_str=context, results=context)
     try:
-        raw_response = invoke_llm(prompt)["response"].strip()
+        return invoke_llm(prompt)["response"].strip()
     except Exception as e:
-        print(f"Warning: LLM invocation failed for augmented generator ({e}). Defaulting to empty string.")
+        print(f"Warning: LLM invocation failed for {label} ({e}). Defaulting to empty string.")
         return ""
 
-    return raw_response
 
-def summarizer(query, results:list[dict]) -> str:
-    formatted_results = []
-    for idx, result in enumerate(results, start=1):
-        title = result.get("title", "Untitled")
-        desc = result.get("description", "")
-        formatted_results.append(f"Result {idx}: {title} - {desc}")
+def augmented_generator(query: str, results: list[dict]) -> str:
+    return _generate_answer(query, results, AUGMENTED_GENERATION, "augmented generator")
 
-    doc_list_str = "\n".join(formatted_results)
 
-    prompt = SUMMARIZER.format(
-        query=query,
-        results=doc_list_str
-    )
+def summarizer(query: str, results: list[dict]) -> str:
+    return _generate_answer(query, results, SUMMARIZER, "summarizer")
 
-    try:
-        raw_response = invoke_llm(prompt)["response"].strip()
-    except Exception as e:
-        print(f"Warning: LLM invocation failed for summarizer ({e}). Defaulting to empty string.")
-        return ""
 
-    return raw_response
+def citations_generator(query: str, results: list[dict]) -> str:
+    return _generate_answer(query, results, CITATIONS, "citations generator")
 
-def citations_generator(query, results:list[dict]) -> str:
-    formatted_results = []
-    for idx, result in enumerate(results, start=1):
-        title = result.get("title", "Untitled")
-        desc = result.get("description", "")
-        formatted_results.append(f"Result {idx}: {title} - {desc}")
 
-    doc_list_str = "\n".join(formatted_results)
-
-    prompt = CITATIONS.format(
-        query=query,
-        doc_list_str=doc_list_str
-    )
-
-    try:
-        raw_response = invoke_llm(prompt)["response"].strip()
-    except Exception as e:
-        print(f"Warning: LLM invocation failed for citations generator ({e}). Defaulting to empty string.")
-        return ""
-
-    return raw_response
-
-def question_handler(query, results:list[dict]) -> str:
-    formatted_results = []
-    for idx, result in enumerate(results, start=1):
-        title = result.get("title", "Untitled")
-        desc = result.get("description", "")
-        formatted_results.append(f"Result {idx}: {title} - {desc}")
-
-    doc_list_str = "\n".join(formatted_results)
-
-    prompt = QUESTION.format(
-        query=query,
-        doc_list_str=doc_list_str
-    )
-
-    try:
-        raw_response = invoke_llm(prompt)["response"].strip()
-    except Exception as e:
-        print(f"Warning: LLM invocation failed for question handler ({e}). Defaulting to empty string.")
-        return ""
-
-    return raw_response
+def question_handler(query: str, results: list[dict]) -> str:
+    return _generate_answer(query, results, QUESTION, "question handler")
 
 def image_describer(mime: str, image_path: str, query: str) -> tuple[str, int]:
     client = get_client()
@@ -258,7 +200,7 @@ def image_describer(mime: str, image_path: str, query: str) -> tuple[str, int]:
             "content": [
                 {"type": "text", "text": IMAGE_DESCRIBER.strip()},
                 {"type": "image_url", "image_url": {"url": data_url}},
-                {"type": "text", "text": query}
+                {"type": "text", "text": query or "Describe this image."}
             ],
         }
     ]
@@ -268,5 +210,8 @@ def image_describer(mime: str, image_path: str, query: str) -> tuple[str, int]:
         messages=messages
     )
 
-    return (completion.choices[0].message.content.strip(), completion.usage.total_tokens)
+    return (
+        (completion.choices[0].message.content or "").strip(),
+        completion.usage.total_tokens if completion.usage else 0,
+    )
     

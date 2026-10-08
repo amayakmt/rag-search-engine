@@ -1,7 +1,7 @@
 import argparse
-from utils.data import load_test_cases, load_movies
-from core.hybrid_search import HybridSearch
-from config import RRF_SEARCH_K
+from rag_search_engine.utils.data import load_test_cases, load_movies
+from rag_search_engine.core.hybrid_search import HybridSearch
+from rag_search_engine.config import RRF_SEARCH_K
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Search Evaluation CLI")

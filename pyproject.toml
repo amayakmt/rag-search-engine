@@ -1,7 +1,7 @@
 [project]
 name = "rag-search-engine"
 version = "0.1.0"
-description = "Add your description here"
+description = "Movie retrieval with keyword, semantic, hybrid, multimodal search, and RAG"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -12,3 +12,19 @@ dependencies = [
     "python-dotenv==1.1.0",
     "sentence-transformers>=6.0.1",
 ]
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project.scripts]
+rag-keyword = "cli.keyword_search_cli:main"
+rag-semantic = "cli.semantic_search_cli:main"
+rag-hybrid = "cli.hybrid_search_cli:main"
+rag-generate = "cli.augmented_generation_cli:main"
+rag-evaluate = "cli.evaluation_cli:main"
+rag-multimodal = "cli.multimodal_search_cli:main"
+rag-describe-image = "cli.describe_image_cli:main"
+
+[tool.setuptools.packages.find]
+include = ["rag_search_engine*", "cli*"]

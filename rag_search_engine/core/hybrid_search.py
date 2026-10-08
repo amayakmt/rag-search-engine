@@ -1,14 +1,11 @@
-import os
-
 from .inverted_index import InvertedIndex
-from .semantic_search import ChunkedSemanticSearch
-
-from config import INDEX_PATH
 
 def hybrid_score(bm25_score: float, semantic_score: float, alpha: float = 0.5) -> float:
     return alpha * bm25_score + (1 - alpha) * semantic_score
 
-def rrf_score(rank: int, k: int = 60) -> float:
+def rrf_score(rank: int | None, k: int = 60) -> float:
+    if k < 0:
+        raise ValueError("k must be non-negative")
     if rank is None:
         return 0.0
     return 1 / (k + rank)
@@ -16,27 +13,40 @@ def rrf_score(rank: int, k: int = 60) -> float:
 
 class HybridSearch:
     def __init__(self, documents: list[dict]) -> None:
+        from .semantic_search import ChunkedSemanticSearch
+
         self.documents = documents
         self.semantic_search = ChunkedSemanticSearch()
         self.semantic_search.load_or_create_chunk_embeddings(documents)
 
         self.idx = InvertedIndex()
-        if not os.path.exists(INDEX_PATH):
-            self.idx.build()
+        try:
+            self.idx.load()
+        except FileNotFoundError:
+            self.idx.build(documents)
             self.idx.save()
+        else:
+            if self.idx.docmap != {doc["id"]: doc for doc in documents}:
+                self.idx.build(documents)
+                self.idx.save()
 
     def _bm25_search(self, query: str, limit: int) -> list[dict]:
-        self.idx.load()
         return self.idx.bm25_search(query, limit)
 
     def weighted_search(self, query: str, alpha: float, limit: int = 5) -> list[dict]:
+        if not 0 <= alpha <= 1:
+            raise ValueError("alpha must be between 0 and 1")
+        if limit < 0:
+            raise ValueError("limit must be non-negative")
+        if limit == 0:
+            return []
         bm25_results: list[dict] = self._bm25_search(query, limit * 500)
         semantic_results: list[dict] = self.semantic_search.search_chunks(query, limit * 500)
 
         bm25_norm: list[float] = self.normalize([res["score"] for res in bm25_results])
         semantic_norm: list[float] = self.normalize([res["score"] for res in semantic_results])
 
-        combined_results: dict[dict] = {}
+        combined_results: dict[int, dict] = {}
 
         # add bm_25 normalized score
         for result, norm_score in zip(bm25_results, bm25_norm):
@@ -69,6 +79,12 @@ class HybridSearch:
         return sorted(combined_results.values(), key=lambda item: item["hybrid_score"], reverse=True)[:limit]
 
     def rrf_search(self, query: str, k: int, limit: int = 10) -> list[dict]:
+        if k < 0:
+            raise ValueError("k must be non-negative")
+        if limit < 0:
+            raise ValueError("limit must be non-negative")
+        if limit == 0:
+            return []
         bm25_results: list[dict] = self._bm25_search(query, limit * 500)
         semantic_results: list[dict] = self.semantic_search.search_chunks(query, limit * 500)
 
@@ -105,7 +121,8 @@ class HybridSearch:
 
         return sorted(combined_results.values(), key=lambda item: item["rrf_score"], reverse=True)[:limit]
 
-    def normalize(self, scores: list[float]) -> list[float]:
+    @staticmethod
+    def normalize(scores: list[float]) -> list[float]:
         if not scores:
             return []
 

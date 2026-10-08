@@ -1,7 +1,7 @@
 import argparse
 
-from core.multimodal_search import MultimodalSearch, image_search_command
-from utils.data import load_movies
+from rag_search_engine.core.multimodal_search import MultimodalSearch, image_search_command
+from rag_search_engine.utils.data import load_movies
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Describe Image CLI")
