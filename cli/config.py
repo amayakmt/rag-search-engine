@@ -28,6 +28,7 @@ RRF_SEARCH_K = 60
 # LLM
 MODEL = "openrouter/free"
 LLM_BASE_URL = "https://openrouter.ai/api/v1"
+MULTIMODAL_MODEL = "clip-ViT-B-32"
 
 # Cross-Encoder
 CROSS_ENCODER_MODEL = "cross-encoder/ms-marco-TinyBERT-L2-v2"
