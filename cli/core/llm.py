@@ -4,10 +4,12 @@ import json
 from typing import TypedDict
 from dotenv import load_dotenv
 from openai import OpenAI
+import base64
 
 from config import MODEL, LLM_BASE_URL
 from core.llm_prompts import (
     AUGMENTED_GENERATION,
+    IMAGE_DESCRIBER,
     SPELL_CHECKER,
     REWRITER,
     EXPANSION,
@@ -242,3 +244,29 @@ def question_handler(query, results:list[dict]) -> str:
         return ""
 
     return raw_response
+
+def image_describer(mime: str, image_path: str, query: str) -> tuple[str, int]:
+    client = get_client()
+
+    with open(image_path, "rb") as f:
+        image_data = f.read()
+
+    data_url = f"data:{mime};base64,{base64.b64encode(image_data).decode()}"
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": IMAGE_DESCRIBER.strip()},
+                {"type": "image_url", "image_url": {"url": data_url}},
+                {"type": "text", "text": query}
+            ],
+        }
+    ]
+
+    completion = client.chat.completions.create(
+        model=MODEL,
+        messages=messages
+    )
+
+    return (completion.choices[0].message.content.strip(), completion.usage.total_tokens)
+    
