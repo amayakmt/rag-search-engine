@@ -1,0 +1,19 @@
+{
+  "movies": [
+    {
+      "id": 1,
+      "title": "Beyond the Galaxy",
+      "description": "An astronaut follows a mysterious signal through deep space and discovers a lost civilization."
+    },
+    {
+      "id": 2,
+      "title": "The Last Orbit",
+      "description": "An astronaut must repair a damaged space station before its orbit collapses."
+    },
+    {
+      "id": 3,
+      "title": "Ocean's Edge",
+      "description": "A sailor crosses the ocean to reunite with family after a storm destroys the harbor."
+    }
+  ]
+}
