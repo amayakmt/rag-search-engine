@@ -16,6 +16,7 @@ from core.llm_prompts import (
     EVALUATE,
     SUMMARIZER,
     CITATIONS,
+    QUESTION
 )
 
 class LLMResponse(TypedDict):
@@ -216,6 +217,28 @@ def citations_generator(query, results:list[dict]) -> str:
         raw_response = invoke_llm(prompt)["response"].strip()
     except Exception as e:
         print(f"Warning: LLM invocation failed for citations generator ({e}). Defaulting to empty string.")
+        return ""
+
+    return raw_response
+
+def question_handler(query, results:list[dict]) -> str:
+    formatted_results = []
+    for idx, result in enumerate(results, start=1):
+        title = result.get("title", "Untitled")
+        desc = result.get("description", "")
+        formatted_results.append(f"Result {idx}: {title} - {desc}")
+
+    doc_list_str = "\n".join(formatted_results)
+
+    prompt = QUESTION.format(
+        query=query,
+        doc_list_str=doc_list_str
+    )
+
+    try:
+        raw_response = invoke_llm(prompt)["response"].strip()
+    except Exception as e:
+        print(f"Warning: LLM invocation failed for question handler ({e}). Defaulting to empty string.")
         return ""
 
     return raw_response
