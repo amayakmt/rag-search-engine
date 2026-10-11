@@ -1,4 +1,4 @@
-# Reel Recall
+# RAG Search Engine
 
 **A Python CLI that finds movies from half-remembered plots by fusing BM25 keyword, semantic, and image search, with optional reranking and LLM answers.**
 
